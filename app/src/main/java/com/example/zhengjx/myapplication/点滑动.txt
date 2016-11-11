@@ -1,0 +1,11 @@
+sendevent /dev/input/event3 3 48 23
+sendevent /dev/input/event3 3 50 23
+sendevent /dev/input/event3 3 58 23
+sendevent /dev/input/event3 3 53 600
+sendevent /dev/input/event3 3 54 700
+sendevent /dev/input/event3 1 330 1
+sendevent /dev/input/event3 0 0 0
+input swipe 400 400 600 600
+sendevent /dev/input/event3 3 57 -1
+sendevent /dev/input/event3 1 330 0
+sendevent /dev/input/event3 0 0 0

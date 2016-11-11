@@ -1,0 +1,45 @@
+button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                new Thread(new Runnable() {
+                    @Override
+                    public void run() {
+                        test2();
+                    }
+                }).start();
+
+            }
+        });
+
+
+testData=正方形.txt的数据
+private void test2(){
+        String cs[] = testData.split("\n");
+// 申请获取root权限，这一步很重要，不然会没有作用
+//                    List cmds=new ArrayList(testData.split("\n"));
+//                    cmds.add("reboot");
+        long s=new Date().getTime();
+        try {
+            execShellCmd(cs);
+        } catch (Exception e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        long end=new Date().getTime();
+        Log.i("ZJX_TIME",""+(end-s));
+    }
+
+
+
+
+    private void execShellCmd(String[] cmds) throws Exception {
+        Process process = Runtime.getRuntime().exec("su");
+        DataOutputStream os = new DataOutputStream(process.getOutputStream());
+        for (String tmpCmd : cmds) {
+            os.writeBytes(tmpCmd + "\n");
+        }
+        os.writeBytes("exit\n");
+        os.flush();
+        os.close();
+        process.waitFor();
+    }

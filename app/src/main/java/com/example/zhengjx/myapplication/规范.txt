@@ -1,0 +1,7 @@
+ID,OPTION,X,Y;
+OPTION:0:DOWN;1:UP;2:MOVE
+ID:event.getPointerId -> 对应服务器的0x2f
+X,Y 范围在[0,1];这边我们先直接传int
+
+//测试数据：画一个正方形
+

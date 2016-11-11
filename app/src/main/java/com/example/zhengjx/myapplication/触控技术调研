@@ -1,0 +1,84 @@
+首先我们调研时指令是不精简的，也就是说move会发很多指令
+1.adb shell 发送sendevent
+脚本控制avd，可多指，速度最慢，无需root
+
+2.0 root android 发送sendevent
+应用层，用Runtime.getRuntime().exec()去做。
+可多指，速度慢，需要root
+
+【推荐】2.1 android c底层 发送sendevent
+系统是我们自己编译的，要怎么写就怎么写。
+通过底层C去做速度会比2.0更快一点。
+时间间隔不用通过获取时间戳的间隔然后线程堵塞，而是直接给input_event.time赋值，这边老是出错？
+具体做法见2.1 不同的是这边需要了解socket编程
+
+、、初步推测，每次写input文件的时候 都会比对下，即如果写的事件的time属性就是当前，则文件指针直接跳到这边
+、、因为我手机老是写event2事件，所以前面的事件会被冲掉。手动touch也会冲掉？
+【推荐】2.2 jni 层 发送sendevent
+http://blog.csdn.net/w263044840/article/details/47449875
+别人的测试结果：如果在android里执行sendevent命令发一个点击命令，从发送到上屏至少是800多ms，如果直接用jni调用也就10ms左右
+先修改文件权限
+shell@android:/ $ su
+root@android:/ # chmod 777 /dev/input/event3
+
+然后往/dev/input/event3写数据就好了
+与2.1起始是一样的，就是jni调用应该改为开启socket端口读数据
+
+但是每次都进行jni调用中间过程也是有一点耗时(10毫秒左右)，不如2.1
+
+2.3 RootTools
+CommandCapture cmd = new CommandCapture(0, command);
+RootTools.getShell(true).add(cmd);
+
+是时候写一篇：RootTools为何比Runtime快  的文章了
+
+
+3.input swipe
+提供2点坐标..直接做move，且只能单指。、
+同采用2的方法 Runtime
+用swipe，也就是说要等一个完整的DOWN-MOVE-UP过程 然后发送起始-终点位置。
+与其这样 还不如用sendevent 优化move间隔
+测试相关：adb shell getevent 获取不到数据
+
+4.MotionEvent.obtain
+速度快 基本没有延迟就响应
+应用层去做，可跨进程调用(4.1 or 4.2)
+时间间隔通过downTime, eventTime去控制
+测试相关：adb shell getevent 获取不到数据,开启显示触摸点 可以看到触控点
+http://gqdy365.iteye.com/blog/1727587
+
+4.1 Instrumentation
+Instrumentation m_Instrumentation = new Instrumentation();
+m_Instrumentation.sendKeyDownUpSync( KeyEvent.KEYCODE_B );
+API是开放的
+在其他应用上使用会出现这样的提示
+java.lang.SecurityException: Injecting to another application requires INJECT_EVENTS permission
+http://stackoverflow.com/questions/22163424/android-java-lang-securityexception-injecting-to-another-application-requires 无解
+添加权限无效，只能供系统应用
+
+后面发现这东西其实就是封装了一层的测试框架，底层还是InputManagerService的injectInputEvent
+所以我们直接看4.2
+
+4.2 injectPointerEvent
+IWindowManager.Stub.asInterface(ServiceManager
+                   .getService("window"))).injectPointerEvent(event, true);
+需在源码中编译生成jar包 or 反射(效率差点) ，root权限下降jar导入/system/framework/下，方可调用。
+
+
+
+5.accessibilityservice
+借助Android提供的无障碍服务
+在res/xml目录下新建一个accessibility_service_config.xml文件
+<intent-filter>
+    <action android:name="android.accessibilityservice.AccessibilityService" />
+</intent-filter>
+http://blog.csdn.net/sinyu890807/article/details/47803149
+
+实现要各种判断:
+窗口名太多 手动生成accessibility_service_config再service手动Intent注入action不太合适
+然后操作节点等又是很麻烦的一件事：适合对已知节点操作，不适合模拟
+(弃
+
+其他：非root方法：通过hook方法绕过权限验证
+//http://blog.sina.com.cn/s/blog_151b043850102wiv9.html
+以后有空再研究

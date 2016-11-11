@@ -1,0 +1,44 @@
+activity_main.setOnTouchListener(new View.OnTouchListener()
+        {
+            //DOMN UP MOVE事件都会触发..这边写的不好
+            public boolean onTouch(View v, MotionEvent event)
+            {
+                Toast toast = Toast.makeText(
+                        getApplicationContext(),
+                        "View touched",
+                        Toast.LENGTH_LONG
+                );
+                toast.show();
+
+                return true;
+            }
+        });
+
+button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                test3();
+            }
+        });
+
+
+private void test3(){
+//        twoPointTouch(240.0f, 400.0f, 240.0f, 20.0f, 241.0f, 401.0f, 241.0f, 600.0f, 40);
+        long downTime = SystemClock.uptimeMillis();
+        long eventTime = SystemClock.uptimeMillis() + 100;
+        float x = 0.0f;
+        float y = 0.0f;
+        int metaState = 0;
+        MotionEvent motionEvent = MotionEvent.obtain(
+                downTime,
+                eventTime,
+                MotionEvent.ACTION_UP,
+                x,
+                y,
+                metaState
+        );
+
+        activity_main.dispatchTouchEvent(motionEvent);
+}
+
+//上述做法操作都是一个应用，如何开个service,跨进程发送模拟事件？

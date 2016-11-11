@@ -1,0 +1,95 @@
+MainActivity接受MTView的触控数据，socket发送给远端
+涉及耗时线程的Handle操作
+
+Socket socket = null;
+private static BufferedWriter writer = null;
+private static BufferedReader reader = null;
+
+ private static class MyHandler extends Handler {
+        //这边这个looper参数是否应该软引用？
+        public MyHandler(Looper looper) {
+            super(looper);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            //子线程收到数据，进行socket send data
+            super.handleMessage(msg);
+            Log.i("RECEIVE", "子线程收到:" + msg.obj);
+            try {
+                writer.write(msg.obj + "\n");//必须加上换行
+                writer.flush();
+            } catch (IOException e) {
+
+            }
+        }
+    }
+
+
+ class SockRunnable implements Runnable {
+         @Override
+         public void run() {
+             Log.i("THREAD", "START");
+             try {
+                 socket = new Socket("192.168.191.1", 12345);
+                 writer = new BufferedWriter(new OutputStreamWriter(
+                         socket.getOutputStream(), "utf-8"));
+                 reader = new BufferedReader(new InputStreamReader(
+                         socket.getInputStream(), "utf-8"));
+                 Log.i("CONNECT", "连接成功");
+ //                writer.write("客户端发送的消息" + "\n");//必须加上换行
+ //                writer.flush();
+             } catch (IOException e) {
+                 e.printStackTrace();
+             }
+             try {
+                 Looper.prepare();
+                 //让MyHandle为子线程服务
+                 mHandler = new MyHandler(Looper.myLooper());
+                 Looper.loop();
+             } catch (Exception e) {
+                 Log.e("zjx", "error");
+                 e.printStackTrace();
+             }
+         }
+     }
+
+
+ @Override
+     protected void onDestroy() {
+         super.onDestroy();
+         if (mHandler != null) {
+             mHandler.removeCallbacksAndMessages(null);
+         }
+         if (writer != null) {
+             try {
+                 writer.close();
+                 reader.close();
+             } catch (IOException e) {
+                 e.printStackTrace();
+             }
+         }
+     }
+
+
+ onCreate中
+
+ super.onCreate(savedInstanceState);
+
+         new Thread(new SockRunnable()).start();
+         ReceiveData rd=new ReceiveData() {
+             @Override
+             public void receive(String json) {
+                 Log.i("SEND",json);
+                 //ADD 时间轴
+                 //MOVE数据的过滤 平方和<12
+                 //SOCKET数据发送
+                 Message message=new Message();
+                 message.obj=json;
+                 if(mHandler!=null){
+                     mHandler.sendMessage(message);
+                 }
+             }
+         };
+         MTView mt=new MTView(this,rd);
+         setContentView(mt);
